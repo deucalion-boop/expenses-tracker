@@ -182,16 +182,16 @@ const IncomePage = () => {
               <tbody>
                 {items.map((item) => (
                   <tr key={item._id}>
-                    <td>
+                    <td data-label="Title">
                       <div className="table-title">
                         <strong>{item.title}</strong>
                         <small>{item.description || 'No description'}</small>
                       </div>
                     </td>
-                    <td>{item.source}</td>
-                    <td>{formatDate(item.date)}</td>
-                    <td className="amount positive">+{formatCurrency(item.amount)}</td>
-                    <td>
+                    <td data-label="Source">{item.source}</td>
+                    <td data-label="Date">{formatDate(item.date)}</td>
+                    <td data-label="Amount" className="amount positive">+{formatCurrency(item.amount)}</td>
+                    <td data-label="Actions">
                       <div className="row-actions">
                         <button type="button" className="icon-button small" onClick={() => openEditModal(item)} aria-label="Edit income">
                           <Pencil size={16} />

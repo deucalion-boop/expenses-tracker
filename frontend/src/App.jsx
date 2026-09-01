@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { Toaster, toast } from 'react-hot-toast'
 import Header from './components/layout/Header'
@@ -25,6 +25,24 @@ function App() {
   const setToken = useAuthStore((state) => state.setToken)
   const logout = useAuthStore((state) => state.logout)
   const location = useLocation()
+  const [navOpen, setNavOpen] = useState(false)
+
+  const closeNav = useCallback(() => setNavOpen(false), [])
+
+  useEffect(() => {
+    if (!navOpen) return undefined
+
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') closeNav()
+    }
+
+    document.body.classList.add('nav-locked')
+    document.addEventListener('keydown', handleKeyDown)
+    return () => {
+      document.body.classList.remove('nav-locked')
+      document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [navOpen, closeNav])
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -78,9 +96,10 @@ function App() {
 
   return (
     <div className="app-shell">
-      <Sidebar user={user} onLogout={handleLogout} />
+      <Sidebar user={user} onLogout={handleLogout} isOpen={navOpen} onClose={closeNav} />
+      {navOpen && <button type="button" className="nav-scrim" onClick={closeNav} aria-label="Close navigation" />}
       <main className="main-panel">
-        <Header title={currentTitle} user={user} />
+        <Header title={currentTitle} user={user} onMenuClick={() => setNavOpen(true)} />
         <div className="content-area">
           <Routes>
             <Route path="/" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />

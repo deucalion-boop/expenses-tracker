@@ -194,17 +194,17 @@ const ExpensesPage = () => {
               <tbody>
                 {filteredItems.map((item) => (
                   <tr key={item._id}>
-                    <td>
+                    <td data-label="Title">
                       <div className="table-title">
                         <strong>{item.title}</strong>
                         <small>{item.description || 'No description'}</small>
                       </div>
                     </td>
-                    <td>{item.category}</td>
-                    <td>{item.paymentMethod}</td>
-                    <td>{formatDate(item.date)}</td>
-                    <td className="amount negative">-{formatCurrency(item.amount)}</td>
-                    <td>
+                    <td data-label="Category">{item.category}</td>
+                    <td data-label="Payment">{item.paymentMethod}</td>
+                    <td data-label="Date">{formatDate(item.date)}</td>
+                    <td data-label="Amount" className="amount negative">-{formatCurrency(item.amount)}</td>
+                    <td data-label="Actions">
                       <div className="row-actions">
                         <button type="button" className="icon-button small" onClick={() => openEditModal(item)} aria-label="Edit expense">
                           <Pencil size={16} />

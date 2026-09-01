@@ -1,13 +1,16 @@
-import { Bell, ChevronDown, Moon, Search, SunMedium } from 'lucide-react'
+import { Bell, ChevronDown, Menu, Moon, Search, SunMedium } from 'lucide-react'
 import PropTypes from 'prop-types'
 import { useTheme } from '../../context/theme'
 
-const Header = ({ title, user, onSearch, searchValue }) => {
+const Header = ({ title, user, onSearch, searchValue, onMenuClick }) => {
   const { theme, setTheme } = useTheme()
 
   return (
     <header className="topbar">
       <div className="topbar-left">
+        <button type="button" className="icon-button menu-button" onClick={onMenuClick} aria-label="Open navigation">
+          <Menu size={18} />
+        </button>
         <h1>{title}</h1>
       </div>
 
@@ -29,7 +32,7 @@ const Header = ({ title, user, onSearch, searchValue }) => {
 
         <div className="profile-chip">
           <div className="avatar-circle small">{user?.name?.charAt(0)?.toUpperCase() || 'U'}</div>
-          <div>
+          <div className="profile-details">
             <strong>{user?.name || 'User'}</strong>
             <small>{user?.email || 'user@example.com'}</small>
           </div>
@@ -48,6 +51,7 @@ Header.propTypes = {
   }),
   onSearch: PropTypes.func,
   searchValue: PropTypes.string,
+  onMenuClick: PropTypes.func,
 }
 
 export default Header
