@@ -144,8 +144,6 @@ a { color: inherit; text-decoration: none; }
 
 .nav-scrim { display: none; }
 
-.drawer-close { display: none; }
-
 .main-panel { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .topbar {
   display: flex;
@@ -159,7 +157,6 @@ a { color: inherit; text-decoration: none; }
 .topbar h1 { margin: 0; font-size: clamp(1.8rem, 3vw, 2.2rem); }
 .topbar-left { display: flex; align-items: center; gap: 12px; min-width: 0; }
 .topbar-left h1 { overflow-wrap: anywhere; }
-.menu-button { display: none; }
 .topbar-actions {
   display: flex;
   align-items: center;
@@ -284,6 +281,7 @@ a { color: inherit; text-decoration: none; }
 }
 .icon-button.small { width: 32px; height: 32px; }
 .icon-button.danger { color: var(--danger); }
+.icon-button.menu-button, .icon-button.drawer-close { display: none; }
 
 .modal-overlay {
   position: fixed; inset: 0; background: rgba(15, 23, 42, 0.55); display: grid; place-items: center; padding: 20px; z-index: 1000;
@@ -353,7 +351,7 @@ a { color: inherit; text-decoration: none; }
   .brand-block { justify-content: flex-start; gap: 12px; }
   .nav-item { justify-content: flex-start; min-height: 48px; }
   .user-pill { justify-content: flex-start; }
-  .drawer-close { display: grid; margin-left: auto; }
+  .icon-button.drawer-close { display: grid; margin-left: auto; }
 
   .nav-scrim {
     display: block;
@@ -365,7 +363,7 @@ a { color: inherit; text-decoration: none; }
     background: rgba(15, 23, 42, 0.5);
   }
 
-  .menu-button { display: grid; flex: none; }
+  .icon-button.menu-button { display: grid; flex: none; }
   .topbar {
     position: sticky;
     top: 0;
