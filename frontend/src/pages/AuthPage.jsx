@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'react-hot-toast'
+import { PiggyBank, ShieldCheck } from 'lucide-react'
 import { registerUser, loginUser } from '../services/authService'
 import useAuthStore from '../store/authStore'
 import Button from '../components/ui/Button'
@@ -20,6 +21,12 @@ const AuthPage = () => {
   const [form, setForm] = useState(initialForm)
   const [errors, setErrors] = useState({})
   const [loading, setLoading] = useState(false)
+
+  const switchMode = (loginMode) => {
+    if (loading || loginMode === isLogin) return
+    setIsLogin(loginMode)
+    setErrors({})
+  }
 
   const handleChange = (event) => {
     const { name, value } = event.target
@@ -54,7 +61,7 @@ const AuthPage = () => {
       setToken(token)
       setUser(user)
       toast.success(isLogin ? 'Login successful' : 'Account created successfully')
-      navigate('/')
+      navigate(user.role === 'admin' ? '/admin' : '/')
     } catch (error) {
       toast.error(error.message)
     } finally {
@@ -64,26 +71,50 @@ const AuthPage = () => {
 
   return (
     <div className="auth-page shell-center">
-      <Card className="auth-card" title={isLogin ? 'Welcome back' : 'Create your account'} subtitle="Track your money with confidence.">
-        <form onSubmit={handleSubmit} className="auth-form">
-          {!isLogin && (
-            <Input id="name" name="name" label="Full name" value={form.name} onChange={handleChange} error={errors.name} />
-          )}
-          <Input id="email" name="email" label="Email" type="email" value={form.email} onChange={handleChange} error={errors.email} />
-          <Input id="password" name="password" label="Password" type="password" value={form.password} onChange={handleChange} error={errors.password} />
+      <div className="auth-background" aria-hidden="true">
+        <span className="auth-grid" />
+      </div>
 
-          <Button type="submit" disabled={loading} className="full-width">
-            {loading ? 'Please wait...' : isLogin ? 'Login' : 'Create account'}
-          </Button>
-        </form>
+      <main className="auth-shell">
+        <a className="auth-brand" href="/" aria-label="LedgerFlow home">
+          <span className="auth-brand-icon"><PiggyBank size={22} /></span>
+          <span>LedgerFlow</span>
+        </a>
 
-        <div className="toggle-text">
-          <span>{isLogin ? 'Need an account?' : 'Already have an account?'}</span>
-          <button type="button" className="link-button" onClick={() => setIsLogin((current) => !current)}>
-            {isLogin ? 'Sign up' : 'Log in'}
-          </button>
-        </div>
-      </Card>
+        <Card className="auth-card">
+          <div className="auth-card-header">
+            <span className="auth-kicker"><ShieldCheck size={14} /> Secure access</span>
+            <h1>{isLogin ? 'Welcome back' : 'Start your journey'}</h1>
+            <p>{isLogin ? 'Sign in to continue managing your finances.' : 'Create an account and take control of your money.'}</p>
+          </div>
+
+          <div className="auth-mode-switch" role="tablist" aria-label="Authentication mode">
+            <button type="button" role="tab" aria-selected={isLogin} className={isLogin ? 'active' : ''} onClick={() => switchMode(true)}>Login</button>
+            <button type="button" role="tab" aria-selected={!isLogin} className={!isLogin ? 'active' : ''} onClick={() => switchMode(false)}>Register</button>
+          </div>
+
+          <form key={isLogin ? 'login' : 'register'} onSubmit={handleSubmit} className="auth-form auth-form-enter">
+            {!isLogin && (
+              <Input id="name" name="name" label="Full name" autoComplete="name" placeholder="Your full name" value={form.name} onChange={handleChange} error={errors.name} />
+            )}
+            <Input id="email" name="email" label="Email address" type="email" autoComplete="email" placeholder="you@example.com" value={form.email} onChange={handleChange} error={errors.email} />
+            <Input id="password" name="password" label="Password" type="password" autoComplete={isLogin ? 'current-password' : 'new-password'} placeholder="At least 6 characters" value={form.password} onChange={handleChange} error={errors.password} />
+
+            <Button type="submit" disabled={loading} className="full-width auth-submit" aria-busy={loading}>
+              {loading ? <><span className="button-loader" /> Please wait...</> : isLogin ? 'Sign in securely' : 'Create my account'}
+            </Button>
+          </form>
+
+          <div className="toggle-text">
+            <span>{isLogin ? 'New to LedgerFlow?' : 'Already have an account?'}</span>
+            <button type="button" className="link-button" onClick={() => switchMode(!isLogin)}>
+              {isLogin ? 'Create account' : 'Sign in'}
+            </button>
+          </div>
+        </Card>
+
+        <p className="auth-footnote">Your financial data stays private and protected.</p>
+      </main>
     </div>
   )
 }

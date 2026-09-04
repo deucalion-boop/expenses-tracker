@@ -19,3 +19,13 @@ export const logoutUser = async () => {
   const response = await api.post('/auth/logout')
   return unwrapApiResponse(response)
 }
+
+export const updateProfile = async (payload) => {
+  const response = await api.patch('/auth/profile', payload)
+  return unwrapApiResponse(response)
+}
+
+export const changePassword = async (payload) => {
+  const response = await api.patch('/auth/password', payload)
+  return unwrapApiResponse(response)
+}

@@ -33,7 +33,17 @@ npm install
 npm run dev
 ```
 
-Create a `.env` file in the backend using your MongoDB connection string and JWT secret.
+Copy `backend/.env.example` to `backend/.env`, then set your MongoDB connection string,
+JWT secret, and initial admin credentials. On startup, the backend creates the admin
+account if it does not exist. Public registration can never create an administrator.
+
+`MONGODB_URI` is required. The server will stop with a clear configuration error if it
+is missing, preventing accounts and transactions from being stored in a temporary
+in-memory database. For a local MongoDB installation, use
+`mongodb://127.0.0.1:27017/expense-tracker`.
+
+The administrator dashboard supports user search, role and account-status management,
+user removal, platform statistics, registration control, and a support contact setting.
 
 ## License
 

@@ -1,4 +1,4 @@
-import { BarChart3, DollarSign, LayoutDashboard, LogOut, PiggyBank, Settings, Wallet } from 'lucide-react'
+import { BarChart3, DollarSign, LayoutDashboard, LogOut, PiggyBank, Settings, ShieldCheck, Wallet } from 'lucide-react'
 import PropTypes from 'prop-types'
 import { NavLink } from 'react-router-dom'
 import Button from '../ui/Button'
@@ -8,6 +8,11 @@ const navItems = [
   { label: 'Expenses', to: '/expenses', icon: Wallet },
   { label: 'Income', to: '/income', icon: DollarSign },
   { label: 'Analytics', to: '/analytics', icon: BarChart3 },
+  { label: 'Settings', to: '/settings', icon: Settings },
+]
+
+const adminNavItems = [
+  { label: 'Admin dashboard', to: '/admin', icon: ShieldCheck },
   { label: 'Settings', to: '/settings', icon: Settings },
 ]
 
@@ -22,8 +27,9 @@ const Sidebar = ({ user, onLogout }) => (
     </div>
 
     <nav className="sidebar-nav" aria-label="Sidebar navigation">
-      {navItems.map(({ label, to, icon: Icon }) => (
-        <NavLink key={label} to={to} className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} end={to === '/'}>
+      <span className="nav-section-label">Workspace</span>
+      {(user?.role === 'admin' ? adminNavItems : navItems).map(({ label, to, icon: Icon }) => (
+        <NavLink key={label} to={to} title={label} className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} end={to === '/'}>
           <Icon size={18} />
           <span>{label}</span>
         </NavLink>
@@ -36,6 +42,7 @@ const Sidebar = ({ user, onLogout }) => (
         <div>
           <strong>{user?.name || 'User'}</strong>
           <small>{user?.email || 'No email'}</small>
+          {user?.role === 'admin' && <small className="role-label">Administrator</small>}
         </div>
       </div>
       <Button variant="ghost" onClick={onLogout} className="logout-button">
@@ -50,6 +57,7 @@ Sidebar.propTypes = {
   user: PropTypes.shape({
     name: PropTypes.string,
     email: PropTypes.string,
+    role: PropTypes.oneOf(['user', 'admin']),
   }),
   onLogout: PropTypes.func.isRequired,
 }

@@ -18,6 +18,10 @@ const protect = async (req, res, next) => {
       return sendError(res, 'User not found', 401)
     }
 
+    if (user.status === 'suspended') {
+      return sendError(res, 'This account has been suspended', 403)
+    }
+
     req.user = user
     return next()
   } catch {

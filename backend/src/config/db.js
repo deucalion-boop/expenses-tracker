@@ -1,22 +1,15 @@
 import mongoose from 'mongoose'
-import { MongoMemoryServer } from 'mongodb-memory-server'
-
-const getMongoUri = async () => {
-  if (process.env.MONGODB_URI) {
-    return process.env.MONGODB_URI
-  }
-
-  const memoryServer = await MongoMemoryServer.create()
-  const uri = memoryServer.getUri()
-  process.env.MONGODB_URI = uri
-  return uri
-}
 
 const connectDB = async () => {
   try {
-    const mongoUri = await getMongoUri()
+    const mongoUri = process.env.MONGODB_URI?.trim()
+
+    if (!mongoUri) {
+      throw new Error('MONGODB_URI is required. Add it to backend/.env before starting the server.')
+    }
+
     await mongoose.connect(mongoUri)
-    console.info('MongoDB connected successfully')
+    console.info(`MongoDB connected successfully (${mongoose.connection.name})`)
   } catch (error) {
     console.error('MongoDB connection failed:', error.message)
     throw error
