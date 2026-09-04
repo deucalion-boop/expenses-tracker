@@ -39,6 +39,18 @@ app.get('/api/health', (req, res) => {
   res.json({ success: true, data: { status: 'ok' } })
 })
 
+app.get('/api/cron/recurring', async (req, res, next) => {
+  try {
+    if (!process.env.CRON_SECRET || req.headers.authorization !== `Bearer ${process.env.CRON_SECRET}`) {
+      return res.status(401).json({ success: false, message: 'Unauthorized cron request' })
+    }
+    const processedUsers = await processAllRecurring()
+    return res.json({ success: true, data: { processedUsers } })
+  } catch (error) {
+    return next(error)
+  }
+})
+
 app.use('/api/auth', authRoutes)
 app.use('/api/expenses', expenseRoutes)
 app.use('/api/income', incomeRoutes)
@@ -69,4 +81,6 @@ const startServer = async () => {
   }
 }
 
-startServer()
+if (!process.env.VERCEL) startServer()
+
+export default app

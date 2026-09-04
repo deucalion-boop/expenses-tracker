@@ -55,6 +55,25 @@ Supabase Auth owns password/JWT security and login throttling; adjust production
 under **Authentication → Rate Limits**. The Express API also limits requests globally.
 Set `SENTRY_DSN` in `backend/.env` to enable server error monitoring.
 
+## Deploying to Vercel
+
+The root `vercel.json` deploys the Vite frontend and Express API together with Vercel
+Services. Import the repository in Vercel, keep the project root at the repository root,
+and select **Services** as the Framework Preset. Add these environment variables:
+
+- `VITE_SUPABASE_URL`
+- `VITE_SUPABASE_PUBLISHABLE_KEY`
+- `SUPABASE_URL`
+- `SUPABASE_PUBLISHABLE_KEY`
+- `SUPABASE_SECRET_KEY`
+- `CRON_SECRET` (a long random value)
+- `SENTRY_DSN` (optional)
+
+`VITE_API_URL` can be omitted on Vercel because the frontend automatically uses `/api`.
+The hourly Vercel cron safely catches up recurring transactions that became due while
+the application was inactive. Add the final deployment URL and its `/reset-password`
+path to the Supabase Auth redirect allow list.
+
 The administrator dashboard supports user search, role and account-status management,
 user removal, platform statistics, registration control, and a support contact setting.
 
