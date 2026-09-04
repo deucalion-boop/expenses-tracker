@@ -9,7 +9,9 @@ import LoadingSpinner from '../components/ui/LoadingSpinner'
 import Input from '../components/ui/Input'
 import Select from '../components/ui/Select'
 import Modal from '../components/ui/Modal'
+import ConfirmDialog from '../components/ui/ConfirmDialog'
 import { formatCurrency, formatDate } from '../utils/currency'
+import useDebouncedValue from '../hooks/useDebouncedValue'
 
 const categories = ['Food', 'Transportation', 'Shopping', 'Bills', 'Entertainment', 'Health', 'Education', 'Travel', 'Other']
 const paymentMethods = ['Cash', 'Credit Card', 'Debit Card', 'Bank Transfer', 'E-Wallet', 'Other']
@@ -34,6 +36,8 @@ const ExpensesPage = () => {
   const [form, setForm] = useState(defaultForm)
   const [formError, setFormError] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [pendingDelete, setPendingDelete] = useState(null)
+  const debouncedSearch = useDebouncedValue(search)
 
   const loadExpenses = async () => {
     setLoading(true)
@@ -53,7 +57,7 @@ const ExpensesPage = () => {
     const run = async () => {
       setLoading(true)
       try {
-        const response = await fetchExpenses({ search, category: categoryFilter, sort })
+        const response = await fetchExpenses({ search: debouncedSearch, category: categoryFilter, sort })
         if (active) {
           setItems(response || [])
         }
@@ -72,7 +76,7 @@ const ExpensesPage = () => {
     return () => {
       active = false
     }
-  }, [search, categoryFilter, sort])
+  }, [debouncedSearch, categoryFilter, sort])
 
   const filteredItems = useMemo(() => items, [items])
 
@@ -142,10 +146,11 @@ const ExpensesPage = () => {
     }
   }
 
-  const handleDelete = async (id) => {
+  const handleDelete = async () => {
     try {
-      await deleteExpense(id)
+      await deleteExpense(pendingDelete._id)
       toast.success('Expense deleted successfully')
+      setPendingDelete(null)
       loadExpenses()
     } catch (error) {
       toast.error(error.message)
@@ -209,7 +214,7 @@ const ExpensesPage = () => {
                         <button type="button" className="icon-button small" onClick={() => openEditModal(item)} aria-label="Edit expense">
                           <Pencil size={16} />
                         </button>
-                        <button type="button" className="icon-button small danger" onClick={() => handleDelete(item._id)} aria-label="Delete expense">
+                        <button type="button" className="icon-button small danger" onClick={() => setPendingDelete(item)} aria-label="Delete expense">
                           <Trash2 size={16} />
                         </button>
                       </div>
@@ -240,6 +245,7 @@ const ExpensesPage = () => {
           </div>
         </form>
       </Modal>
+      <ConfirmDialog open={Boolean(pendingDelete)} title="Delete expense?" message={`Delete ${pendingDelete?.title || 'this expense'}? This action cannot be undone.`} onCancel={() => setPendingDelete(null)} onConfirm={handleDelete} />
     </div>
   )
 }

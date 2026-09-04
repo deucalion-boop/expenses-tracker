@@ -5,6 +5,8 @@ export const fetchAdminOverview = async () => {
   return unwrapApiResponse(response)
 }
 
+export const fetchAuditLogs = async (params = {}) => unwrapApiResponse(await api.get('/admin/audit-logs', { params }))
+
 export const fetchAdminUsers = async () => {
   const response = await api.get('/admin/users')
   return unwrapApiResponse(response)

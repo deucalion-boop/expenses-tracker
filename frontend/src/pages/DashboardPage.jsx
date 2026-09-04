@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowDownRight, ArrowUpRight, PiggyBank, Plus, TrendingDown, TrendingUp, WalletCards } from 'lucide-react'
+import { ArrowDownRight, ArrowUpRight, PiggyBank, Plus, Printer, TrendingDown, TrendingUp, WalletCards } from 'lucide-react'
 import { Bar, BarChart, CartesianGrid, Cell, Line, LineChart, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { fetchDashboard, fetchAnalytics } from '../services/analyticsService'
 import SummaryCard from '../components/dashboard/SummaryCard'
@@ -8,10 +8,12 @@ import RecentTransactions from '../components/dashboard/RecentTransactions'
 import Card from '../components/ui/Card'
 import Button from '../components/ui/Button'
 import LoadingSpinner from '../components/ui/LoadingSpinner'
+import DateRangeFilter from '../components/ui/DateRangeFilter'
+import { boundsFor } from '../utils/dateRange'
 import useAuthStore from '../store/authStore'
 import { formatCurrency, formatMonthLabel } from '../utils/currency'
 
-const COLORS = ['#4f46e5', '#0ea5e9', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#14b8a6', '#f97316']
+const COLORS = ['#2563eb', '#0ea5e9', '#10b981', '#f59e0b', '#ef4444', '#38bdf8', '#14b8a6', '#f97316']
 
 const DashboardPage = () => {
   const user = useAuthStore((state) => state.user)
@@ -20,6 +22,8 @@ const DashboardPage = () => {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [reloadKey, setReloadKey] = useState(0)
+  const defaultPeriod = user?.dashboardPeriod || 'month'
+  const [range, setRange] = useState({ preset: defaultPeriod, ...boundsFor(defaultPeriod) })
 
   useEffect(() => {
     let active = true
@@ -27,7 +31,8 @@ const DashboardPage = () => {
       setLoading(true)
       setError('')
       try {
-        const [dashboardRes, analyticsRes] = await Promise.all([fetchDashboard(), fetchAnalytics()])
+        const params = { startDate: range.startDate || undefined, endDate: range.endDate || undefined }
+        const [dashboardRes, analyticsRes] = await Promise.all([fetchDashboard(params), fetchAnalytics(params)])
         if (active) {
           setDashboardData(dashboardRes)
           setAnalyticsData(analyticsRes)
@@ -40,7 +45,7 @@ const DashboardPage = () => {
     }
     load()
     return () => { active = false }
-  }, [reloadKey])
+  }, [reloadKey, range])
 
   const chartData = useMemo(() => {
     if (!analyticsData) return []
@@ -89,10 +94,12 @@ const DashboardPage = () => {
           <p>Here’s a clear look at where your money stands today.</p>
         </div>
         <div className="quick-actions">
+          <button type="button" className="quick-action secondary" onClick={() => window.print()}><Printer size={17} /> Print report</button>
           <Link to="/income" className="quick-action secondary"><ArrowUpRight size={17} /> Add income</Link>
           <Link to="/expenses" className="quick-action primary"><Plus size={17} /> Add expense</Link>
         </div>
       </section>
+      <Card className="filter-card"><DateRangeFilter value={range} onChange={setRange} />{dashboardData?.comparison && <span className="comparison-note">Previous period expenses: {formatCurrency(dashboardData.comparison.previousExpenses)}</span>}</Card>
 
       <div className="stats-grid dashboard-stats">
         <SummaryCard title="Available balance" value={balance} accent="primary" icon={WalletCards} detail="Income minus expenses" />
@@ -152,7 +159,7 @@ const DashboardPage = () => {
                   <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fill: 'var(--muted)', fontSize: 12 }} />
                   <YAxis axisLine={false} tickLine={false} tick={{ fill: 'var(--muted)', fontSize: 12 }} tickFormatter={(value) => `₱${value / 1000}k`} />
                   <Tooltip formatter={(value) => formatCurrency(value)} />
-                  <Line type="monotone" dataKey="balance" name="Net balance" stroke="#4f46e5" strokeWidth={3} dot={{ r: 4, fill: '#4f46e5', strokeWidth: 0 }} />
+                  <Line type="monotone" dataKey="balance" name="Net balance" stroke="#2563eb" strokeWidth={3} dot={{ r: 4, fill: '#2563eb', strokeWidth: 0 }} />
                 </LineChart>
               </ResponsiveContainer>
             </div>

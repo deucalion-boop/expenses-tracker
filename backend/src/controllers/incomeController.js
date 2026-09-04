@@ -1,29 +1,36 @@
-import Income from '../models/Income.js'
+import { createSupabaseClients } from '../config/supabase.js'
 import { incomeSchema } from '../validators/transaction.js'
 import { sendError, sendSuccess } from '../utils/response.js'
+import { mapIncome, toDateOnly } from '../utils/supabaseMappers.js'
+
+const incomePayload = (data) => ({
+  title: data.title,
+  amount: data.amount,
+  source: data.source,
+  description: data.description || '',
+  transaction_date: toDateOnly(data.date),
+})
 
 export const getIncome = async (req, res, next) => {
   try {
     const { search, source, sort = 'desc', startDate, endDate } = req.query
-    const query = { userId: req.user._id }
+    const { admin } = createSupabaseClients()
+    const page = Math.max(Number(req.query.page) || 1, 1)
+    const limit = Math.min(Math.max(Number(req.query.limit) || 20, 1), 100)
+    const paginated = req.query.page !== undefined
+    let query = admin.from('income').select('*', { count: 'exact' }).eq('user_id', req.user.id)
 
-    if (search) {
-      query.title = { $regex: search, $options: 'i' }
-    }
+    if (search) query = query.ilike('title', `%${String(search).replace(/[%_]/g, '\\$&')}%`)
+    if (source) query = query.eq('source', source)
+    if (startDate) query = query.gte('transaction_date', startDate)
+    if (endDate) query = query.lte('transaction_date', endDate)
 
-    if (source) {
-      query.source = source
-    }
-
-    if (startDate || endDate) {
-      query.date = {}
-      if (startDate) query.date.$gte = new Date(startDate)
-      if (endDate) query.date.$lte = new Date(endDate)
-    }
-
-    const sortDirection = sort === 'asc' ? 1 : -1
-    const income = await Income.find(query).sort({ date: sortDirection, createdAt: -1 })
-    return sendSuccess(res, income)
+    query = query.order('transaction_date', { ascending: sort === 'asc' }).order('created_at', { ascending: false })
+    if (paginated) query = query.range((page - 1) * limit, page * limit - 1)
+    const { data, error, count } = await query
+    if (error) throw error
+    const items = data.map(mapIncome)
+    return sendSuccess(res, paginated ? { items, pagination: { page, limit, total: count, pages: Math.ceil(count / limit) } } : items)
   } catch (error) {
     return next(error)
   }
@@ -32,19 +39,15 @@ export const getIncome = async (req, res, next) => {
 export const createIncome = async (req, res, next) => {
   try {
     const parsed = incomeSchema.safeParse(req.body)
+    if (!parsed.success) return sendError(res, parsed.error.issues[0]?.message || 'Validation failed', 400)
 
-    if (!parsed.success) {
-      return sendError(res, parsed.error.issues[0]?.message || 'Validation failed', 400)
-    }
-
-    const payload = {
-      ...parsed.data,
-      userId: req.user._id,
-      date: new Date(parsed.data.date),
-    }
-
-    const income = await Income.create(payload)
-    return sendSuccess(res, income, 201)
+    const { admin } = createSupabaseClients()
+    const { data, error } = await admin.from('income').insert({
+      ...incomePayload(parsed.data),
+      user_id: req.user.id,
+    }).select().single()
+    if (error) throw error
+    return sendSuccess(res, mapIncome(data), 201)
   } catch (error) {
     return next(error)
   }
@@ -52,13 +55,11 @@ export const createIncome = async (req, res, next) => {
 
 export const getIncomeById = async (req, res, next) => {
   try {
-    const income = await Income.findOne({ _id: req.params.id, userId: req.user._id })
-
-    if (!income) {
-      return sendError(res, 'Income not found', 404)
-    }
-
-    return sendSuccess(res, income)
+    const { admin } = createSupabaseClients()
+    const { data, error } = await admin.from('income').select('*').eq('id', req.params.id).eq('user_id', req.user.id).maybeSingle()
+    if (error) throw error
+    if (!data) return sendError(res, 'Income not found', 404)
+    return sendSuccess(res, mapIncome(data))
   } catch (error) {
     return next(error)
   }
@@ -67,22 +68,13 @@ export const getIncomeById = async (req, res, next) => {
 export const updateIncome = async (req, res, next) => {
   try {
     const parsed = incomeSchema.safeParse(req.body)
+    if (!parsed.success) return sendError(res, parsed.error.issues[0]?.message || 'Validation failed', 400)
 
-    if (!parsed.success) {
-      return sendError(res, parsed.error.issues[0]?.message || 'Validation failed', 400)
-    }
-
-    const income = await Income.findOneAndUpdate(
-      { _id: req.params.id, userId: req.user._id },
-      { ...parsed.data, date: new Date(parsed.data.date) },
-      { new: true, runValidators: true },
-    )
-
-    if (!income) {
-      return sendError(res, 'Income not found', 404)
-    }
-
-    return sendSuccess(res, income)
+    const { admin } = createSupabaseClients()
+    const { data, error } = await admin.from('income').update(incomePayload(parsed.data)).eq('id', req.params.id).eq('user_id', req.user.id).select().maybeSingle()
+    if (error) throw error
+    if (!data) return sendError(res, 'Income not found', 404)
+    return sendSuccess(res, mapIncome(data))
   } catch (error) {
     return next(error)
   }
@@ -90,13 +82,11 @@ export const updateIncome = async (req, res, next) => {
 
 export const deleteIncome = async (req, res, next) => {
   try {
-    const deleted = await Income.findOneAndDelete({ _id: req.params.id, userId: req.user._id })
-
-    if (!deleted) {
-      return sendError(res, 'Income not found', 404)
-    }
-
-    return sendSuccess(res, { deletedId: req.params.id })
+    const { admin } = createSupabaseClients()
+    const { data, error } = await admin.from('income').delete().eq('id', req.params.id).eq('user_id', req.user.id).select('id').maybeSingle()
+    if (error) throw error
+    if (!data) return sendError(res, 'Income not found', 404)
+    return sendSuccess(res, { deletedId: data.id })
   } catch (error) {
     return next(error)
   }

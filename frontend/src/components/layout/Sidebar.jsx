@@ -1,4 +1,4 @@
-import { BarChart3, DollarSign, LayoutDashboard, LogOut, PiggyBank, Settings, ShieldCheck, Wallet } from 'lucide-react'
+import { BarChart3, CalendarClock, DollarSign, LayoutDashboard, LogOut, PiggyBank, Settings, ShieldCheck, Wallet } from 'lucide-react'
 import PropTypes from 'prop-types'
 import { NavLink } from 'react-router-dom'
 import Button from '../ui/Button'
@@ -8,6 +8,7 @@ const navItems = [
   { label: 'Expenses', to: '/expenses', icon: Wallet },
   { label: 'Income', to: '/income', icon: DollarSign },
   { label: 'Analytics', to: '/analytics', icon: BarChart3 },
+  { label: 'Planning', to: '/planning', icon: CalendarClock },
   { label: 'Settings', to: '/settings', icon: Settings },
 ]
 
@@ -22,7 +23,7 @@ const Sidebar = ({ user, onLogout }) => (
       <div className="brand-icon"><PiggyBank size={18} /></div>
       <div>
         <p className="eyebrow">Finance</p>
-        <h2>LedgerFlow</h2>
+        <h2>SpendWise</h2>
       </div>
     </div>
 
@@ -47,7 +48,7 @@ const Sidebar = ({ user, onLogout }) => (
       </div>
       <Button variant="ghost" onClick={onLogout} className="logout-button">
         <LogOut size={16} />
-        Logout
+        <span>Logout</span>
       </Button>
     </div>
   </aside>

@@ -3,11 +3,11 @@ import PropTypes from 'prop-types'
 import { ThemeContext } from './theme'
 
 export const ThemeProvider = ({ children }) => {
-  const [theme, setTheme] = useState(() => localStorage.getItem('expense-tracker-theme') || 'light')
+  const [theme, setTheme] = useState(() => localStorage.getItem('spendwise-theme') || localStorage.getItem('expense-tracker-theme') || 'light')
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme)
-    localStorage.setItem('expense-tracker-theme', theme)
+    localStorage.setItem('spendwise-theme', theme)
   }, [theme])
 
   const value = useMemo(() => ({ theme, setTheme }), [theme])

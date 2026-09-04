@@ -1,31 +1,53 @@
-import jwt from 'jsonwebtoken'
-import User from '../models/User.js'
+import { createSupabaseClients } from '../config/supabase.js'
 import { sendError } from '../utils/response.js'
+import { mapProfile } from '../utils/supabaseMappers.js'
 
 const protect = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization || ''
-    const token = authHeader.startsWith('Bearer ') ? authHeader.split(' ')[1] : null
+    const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null
 
-    if (!token) {
-      return sendError(res, 'Authentication token is required', 401)
+    if (!token) return sendError(res, 'Authentication token is required', 401)
+
+    const { auth, admin } = createSupabaseClients()
+    const { data: authData, error: authError } = await auth.auth.getUser(token)
+    const authUser = authData?.user
+
+    if (authError || !authUser?.email) {
+      return sendError(res, 'Invalid or expired Supabase session', 401)
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'dev-secret-key')
-    const user = await User.findById(decoded.id).select('-password')
+    let { data: profile, error: profileError } = await admin
+      .from('profiles')
+      .select('*')
+      .eq('id', authUser.id)
+      .maybeSingle()
 
-    if (!user) {
-      return sendError(res, 'User not found', 401)
+    if (profileError) throw profileError
+
+    if (!profile) {
+      const result = await admin
+        .from('profiles')
+        .insert({
+          id: authUser.id,
+          name: authUser.user_metadata?.name || authUser.email.split('@')[0],
+          email: authUser.email.toLowerCase(),
+        })
+        .select()
+        .single()
+      if (result.error) throw result.error
+      profile = result.data
     }
 
-    if (user.status === 'suspended') {
+    if (profile.status === 'suspended') {
       return sendError(res, 'This account has been suspended', 403)
     }
 
-    req.user = user
+    req.user = mapProfile(profile)
+    req.supabaseUser = authUser
     return next()
-  } catch {
-    return sendError(res, 'Invalid or expired token', 401)
+  } catch (error) {
+    return next(error)
   }
 }
 

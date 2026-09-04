@@ -2,6 +2,7 @@ import express from 'express'
 import {
   deleteUser,
   getAdminOverview,
+  getAuditLogs,
   getSettings,
   getUsers,
   updateSettings,
@@ -14,6 +15,7 @@ const router = express.Router()
 
 router.use(protect, requireAdmin)
 router.get('/overview', getAdminOverview)
+router.get('/audit-logs', getAuditLogs)
 router.get('/users', getUsers)
 router.patch('/users/:id', updateUser)
 router.delete('/users/:id', deleteUser)

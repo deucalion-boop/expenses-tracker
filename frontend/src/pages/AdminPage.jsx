@@ -6,9 +6,11 @@ import Card from '../components/ui/Card'
 import Input from '../components/ui/Input'
 import LoadingSpinner from '../components/ui/LoadingSpinner'
 import Select from '../components/ui/Select'
+import ConfirmDialog from '../components/ui/ConfirmDialog'
 import useAuthStore from '../store/authStore'
 import {
   deleteAdminUser,
+  fetchAuditLogs,
   fetchAdminOverview,
   fetchAdminSettings,
   fetchAdminUsers,
@@ -26,12 +28,15 @@ const AdminPage = () => {
   const [loading, setLoading] = useState(true)
   const [savingSettings, setSavingSettings] = useState(false)
   const [busyUserId, setBusyUserId] = useState(null)
+  const [pendingDelete, setPendingDelete] = useState(null)
+  const [auditLogs, setAuditLogs] = useState([])
 
   const loadAdminData = async () => {
-    const [overviewData, usersData, settingsData] = await Promise.all([
+    const [overviewData, usersData, settingsData, auditData] = await Promise.all([
       fetchAdminOverview(),
       fetchAdminUsers(),
       fetchAdminSettings(),
+      fetchAuditLogs({ limit: 10 }),
     ])
     setOverview(overviewData)
     setUsers(usersData || [])
@@ -39,6 +44,7 @@ const AdminPage = () => {
       allowRegistration: settingsData.allowRegistration,
       supportEmail: settingsData.supportEmail || '',
     })
+    setAuditLogs(auditData.items || [])
   }
 
   useEffect(() => {
@@ -46,10 +52,11 @@ const AdminPage = () => {
 
     const load = async () => {
       try {
-        const [overviewData, usersData, settingsData] = await Promise.all([
+        const [overviewData, usersData, settingsData, auditData] = await Promise.all([
           fetchAdminOverview(),
           fetchAdminUsers(),
           fetchAdminSettings(),
+          fetchAuditLogs({ limit: 10 }),
         ])
         if (active) {
           setOverview(overviewData)
@@ -58,6 +65,7 @@ const AdminPage = () => {
             allowRegistration: settingsData.allowRegistration,
             supportEmail: settingsData.supportEmail || '',
           })
+          setAuditLogs(auditData.items || [])
         }
       } catch (error) {
         if (active) toast.error(error.message)
@@ -97,14 +105,12 @@ const AdminPage = () => {
   }
 
   const handleDelete = async (user) => {
-    const confirmed = window.confirm(`Delete ${user.name} and all of their transactions? This cannot be undone.`)
-    if (!confirmed) return
-
     setBusyUserId(user._id)
     try {
       await deleteAdminUser(user._id)
       await loadAdminData()
       toast.success('User deleted successfully')
+      setPendingDelete(null)
     } catch (error) {
       toast.error(error.message)
     } finally {
@@ -194,7 +200,7 @@ const AdminPage = () => {
                       <Select aria-label={`Status for ${user.name}`} value={user.status} disabled={isSelf || busy} onChange={(event) => handleUserChange(user, 'status', event.target.value)} options={[{ value: 'active', label: 'Active' }, { value: 'suspended', label: 'Suspended' }]} />
                     </td>
                     <td>
-                      <button type="button" className="icon-button small danger" disabled={isSelf || busy} onClick={() => handleDelete(user)} aria-label={`Delete ${user.name}`}>
+                      <button type="button" className="icon-button small danger" disabled={isSelf || busy} onClick={() => setPendingDelete(user)} aria-label={`Delete ${user.name}`}>
                         <Trash2 size={16} />
                       </button>
                     </td>
@@ -205,6 +211,11 @@ const AdminPage = () => {
           </table>
           {filteredUsers.length === 0 && <p className="admin-empty">No users match your search.</p>}
         </div>
+      </Card>
+
+      <Card title="Admin audit log" subtitle="Recent account and system changes">
+        <div className="audit-list">{auditLogs.map((log) => <div className="audit-item" key={log._id}><Activity size={16}/><div><strong>{log.action.replaceAll('_', ' ')}</strong><small>{log.actorEmail}{log.affectedUserEmail ? ` → ${log.affectedUserEmail}` : ''}</small></div><time>{formatDate(log.createdAt)}</time></div>)}</div>
+        {!auditLogs.length && <p className="admin-empty">No administrative changes recorded yet.</p>}
       </Card>
 
       <div className="admin-bottom-grid">
@@ -225,6 +236,7 @@ const AdminPage = () => {
           <div className="health-row"><span className="health-icon warning"><Activity size={17} /></span><div><strong>Registration</strong><small>New account availability</small></div><span className={`status-label ${settings.allowRegistration ? 'success' : 'warning'}`}>{settings.allowRegistration ? 'Open' : 'Closed'}</span></div>
         </Card>
       </div>
+      <ConfirmDialog open={Boolean(pendingDelete)} title="Delete user and data?" message={`Delete ${pendingDelete?.name || 'this user'} and all associated transactions? This cannot be undone.`} busy={busyUserId === pendingDelete?._id} onCancel={() => setPendingDelete(null)} onConfirm={() => handleDelete(pendingDelete)} />
     </div>
   )
 }

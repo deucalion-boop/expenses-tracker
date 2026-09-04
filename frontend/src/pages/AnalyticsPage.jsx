@@ -4,17 +4,20 @@ import Card from '../components/ui/Card'
 import LoadingSpinner from '../components/ui/LoadingSpinner'
 import { fetchAnalytics } from '../services/analyticsService'
 import { formatCurrency, formatMonthLabel } from '../utils/currency'
+import DateRangeFilter from '../components/ui/DateRangeFilter'
+import { boundsFor } from '../utils/dateRange'
 
-const COLORS = ['#4f46e5', '#22c55e', '#f59e0b', '#ef4444', '#14b8a6', '#8b5cf6', '#f97316', '#0ea5e9']
+const COLORS = ['#2563eb', '#22c55e', '#f59e0b', '#ef4444', '#14b8a6', '#38bdf8', '#f97316', '#0ea5e9']
 
 const AnalyticsPage = () => {
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [range, setRange] = useState({ preset: 'month', ...boundsFor('month') })
 
   useEffect(() => {
     const load = async () => {
       try {
-        const response = await fetchAnalytics()
+        const response = await fetchAnalytics({ startDate: range.startDate || undefined, endDate: range.endDate || undefined })
         setData(response)
       } catch (error) {
         console.error(error)
@@ -24,7 +27,7 @@ const AnalyticsPage = () => {
     }
 
     load()
-  }, [])
+  }, [range])
 
   const categoryBreakdown = useMemo(() => {
     if (!data?.categoryBreakdown) return []
@@ -47,6 +50,7 @@ const AnalyticsPage = () => {
 
   return (
     <div className="page-stack">
+      <Card className="filter-card"><DateRangeFilter value={range} onChange={setRange} /></Card>
       <div className="stats-grid analytics-grid">
         <Card className="mini-stat"><span>Total income</span><strong>{formatCurrency(data?.totalIncome || 0)}</strong></Card>
         <Card className="mini-stat"><span>Total expenses</span><strong>{formatCurrency(data?.totalExpenses || 0)}</strong></Card>
@@ -94,7 +98,7 @@ const AnalyticsPage = () => {
               <YAxis tickFormatter={(value) => `₱${value / 1000}k`} />
               <Tooltip formatter={(value) => formatCurrency(value)} />
               <Line type="monotone" dataKey="expense" stroke="#ef4444" strokeWidth={3} />
-              <Line type="monotone" dataKey="income" stroke="#4f46e5" strokeWidth={3} />
+              <Line type="monotone" dataKey="income" stroke="#2563eb" strokeWidth={3} />
             </LineChart>
           </ResponsiveContainer>
         </div>

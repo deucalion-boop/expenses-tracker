@@ -10,9 +10,13 @@ import IncomePage from './pages/IncomePage'
 import AnalyticsPage from './pages/AnalyticsPage'
 import SettingsPage from './pages/SettingsPage'
 import AdminPage from './pages/AdminPage'
+import PlanningPage from './pages/PlanningPage'
 import LoadingSpinner from './components/ui/LoadingSpinner'
 import useAuthStore from './store/authStore'
 import { getCurrentUser, logoutUser } from './services/authService'
+import { supabase } from './services/supabase'
+import { useTheme } from './context/theme'
+import { storeDisplayPreferences } from './utils/currency'
 import './App.css'
 
 const ProtectedRoute = ({ children }) => {
@@ -26,33 +30,59 @@ const AdminRoute = ({ children }) => {
 }
 
 function App() {
+  const { setTheme } = useTheme()
   const token = useAuthStore((state) => state.token)
   const user = useAuthStore((state) => state.user)
   const setUser = useAuthStore((state) => state.setUser)
   const setToken = useAuthStore((state) => state.setToken)
   const logout = useAuthStore((state) => state.logout)
   const location = useLocation()
-  const [checkingSession, setCheckingSession] = useState(Boolean(token))
+  const [checkingSession, setCheckingSession] = useState(true)
+
+  useEffect(() => {
+    let active = true
+
+    const restoreSession = async () => {
+      const { data } = supabase ? await supabase.auth.getSession() : { data: { session: null } }
+      if (!active) return
+      setToken(data.session?.access_token || null)
+      if (!data.session) logout()
+      setCheckingSession(false)
+    }
+
+    restoreSession()
+    const { data: listener } = supabase
+      ? supabase.auth.onAuthStateChange((_event, session) => {
+          setToken(session?.access_token || null)
+          if (!session) logout()
+        })
+      : { data: { subscription: null } }
+
+    return () => {
+      active = false
+      listener.subscription?.unsubscribe()
+    }
+  }, [setToken, logout])
 
   useEffect(() => {
     const fetchUser = async () => {
-      if (!token) {
+      if (!token || location.pathname === '/reset-password') {
         return
       }
 
       try {
         const response = await getCurrentUser()
         setUser(response.user)
+        storeDisplayPreferences(response.user)
+        if (response.user.theme) setTheme(response.user.theme)
       } catch {
         setToken(null)
         logout()
-      } finally {
-        setCheckingSession(false)
       }
     }
 
     fetchUser()
-  }, [token, setUser, setToken, logout])
+  }, [token, location.pathname, setUser, setToken, logout, setTheme])
 
   const currentTitle = useMemo(() => {
     const routeMap = {
@@ -60,6 +90,7 @@ function App() {
       '/expenses': 'Expenses',
       '/income': 'Income',
       '/analytics': 'Analytics',
+      '/planning': 'Budgets & Recurring',
       '/settings': 'Settings',
       '/admin': 'Admin Dashboard',
     }
@@ -75,6 +106,18 @@ function App() {
     } finally {
       logout()
     }
+  }
+
+  if (location.pathname === '/reset-password') {
+    return (
+      <>
+        <Routes>
+          <Route path="/reset-password" element={<AuthPage />} />
+          <Route path="*" element={<Navigate to="/auth" replace />} />
+        </Routes>
+        <Toaster position="top-right" />
+      </>
+    )
   }
 
   if (!token) {
@@ -104,6 +147,7 @@ function App() {
             <Route path="/expenses" element={<ProtectedRoute><ExpensesPage /></ProtectedRoute>} />
             <Route path="/income" element={<ProtectedRoute><IncomePage /></ProtectedRoute>} />
             <Route path="/analytics" element={<ProtectedRoute><AnalyticsPage /></ProtectedRoute>} />
+            <Route path="/planning" element={<ProtectedRoute><PlanningPage /></ProtectedRoute>} />
             <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
             <Route path="/admin" element={<ProtectedRoute><AdminRoute><AdminPage /></AdminRoute></ProtectedRoute>} />
             <Route path="*" element={<Navigate to="/" replace />} />

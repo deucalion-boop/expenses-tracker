@@ -1,5 +1,8 @@
 const errorHandler = (err, req, res, next) => {
-  console.error('ERROR HANDLER:', err)
+  console.error(JSON.stringify({
+    level: 'error', event: 'request_error', method: req.method, path: req.originalUrl,
+    code: err.code || null, message: err.message || 'Something went wrong', timestamp: new Date().toISOString(),
+  }))
 
   if (res.headersSent) {
     return next(err)

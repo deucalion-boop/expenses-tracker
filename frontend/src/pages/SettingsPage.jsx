@@ -5,10 +5,12 @@ import toast from 'react-hot-toast'
 import Card from '../components/ui/Card'
 import Input from '../components/ui/Input'
 import Button from '../components/ui/Button'
+import Select from '../components/ui/Select'
 import LoadingSpinner from '../components/ui/LoadingSpinner'
 import { useTheme } from '../context/theme'
 import useAuthStore from '../store/authStore'
-import { changePassword, updateProfile } from '../services/authService'
+import { changePassword, updatePreferences, updateProfile } from '../services/authService'
+import { storeDisplayPreferences } from '../utils/currency'
 
 const emptyPasswords = {
   currentPassword: '',
@@ -25,6 +27,27 @@ const SettingsContent = ({ user, setUser }) => {
   const [passwords, setPasswords] = useState(emptyPasswords)
   const [savingProfile, setSavingProfile] = useState(false)
   const [changingPassword, setChangingPassword] = useState(false)
+  const [savingPreferences, setSavingPreferences] = useState(false)
+  const [preferences, setPreferences] = useState({
+    currency: user.currency || 'PHP', dateFormat: user.dateFormat || 'MMM d, yyyy',
+    theme: user.theme || theme, dashboardPeriod: user.dashboardPeriod || 'month',
+  })
+
+  const savePreferences = async (event) => {
+    event.preventDefault()
+    setSavingPreferences(true)
+    try {
+      const response = await updatePreferences(preferences)
+      setUser(response.user)
+      storeDisplayPreferences(response.user)
+      setTheme(preferences.theme)
+      toast.success('Preferences saved')
+    } catch (error) {
+      toast.error(error.message)
+    } finally {
+      setSavingPreferences(false)
+    }
+  }
 
   const handleProfileSubmit = async (event) => {
     event.preventDefault()
@@ -108,11 +131,16 @@ const SettingsContent = ({ user, setUser }) => {
         </div>
       </Card>
 
-      <Card title="Preferences" subtitle="Currency and date display">
-        <div className="settings-grid">
-          <Input label="Currency" value="PHP / ₱" readOnly />
-          <Input label="Date format" value="DD/MM/YYYY" readOnly />
-        </div>
+      <Card title="Preferences" subtitle="Save display preferences across devices">
+        <form onSubmit={savePreferences}>
+          <div className="settings-grid">
+            <Select label="Currency" value={preferences.currency} onChange={(event) => setPreferences({ ...preferences, currency: event.target.value })} options={['PHP','USD','EUR','GBP','JPY'].map((value) => ({ value, label: value }))} />
+            <Select label="Date format" value={preferences.dateFormat} onChange={(event) => setPreferences({ ...preferences, dateFormat: event.target.value })} options={[{value:'MMM d, yyyy',label:'Sep 5, 2026'},{value:'MM/dd/yyyy',label:'09/05/2026'},{value:'dd/MM/yyyy',label:'05/09/2026'},{value:'yyyy-MM-dd',label:'2026-09-05'}]} />
+            <Select label="Default dashboard range" value={preferences.dashboardPeriod} onChange={(event) => setPreferences({ ...preferences, dashboardPeriod: event.target.value })} options={[{value:'month',label:'This month'},{value:'year',label:'This year'},{value:'all',label:'All time'}]} />
+            <Select label="Saved theme" value={preferences.theme} onChange={(event) => setPreferences({ ...preferences, theme: event.target.value })} options={[{value:'light',label:'Light'},{value:'dark',label:'Dark'}]} />
+          </div>
+          <Button type="submit" className="mt-16" disabled={savingPreferences}>{savingPreferences ? 'Saving...' : 'Save preferences'}</Button>
+        </form>
       </Card>
 
       <Card title="Security" subtitle="Change your password securely">
@@ -135,6 +163,10 @@ SettingsContent.propTypes = {
   user: PropTypes.shape({
     name: PropTypes.string.isRequired,
     email: PropTypes.string.isRequired,
+    currency: PropTypes.string,
+    dateFormat: PropTypes.string,
+    theme: PropTypes.string,
+    dashboardPeriod: PropTypes.string,
   }).isRequired,
   setUser: PropTypes.func.isRequired,
 }

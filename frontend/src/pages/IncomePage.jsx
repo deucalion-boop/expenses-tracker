@@ -8,8 +8,10 @@ import EmptyState from '../components/ui/EmptyState'
 import Input from '../components/ui/Input'
 import LoadingSpinner from '../components/ui/LoadingSpinner'
 import Modal from '../components/ui/Modal'
+import ConfirmDialog from '../components/ui/ConfirmDialog'
 import Select from '../components/ui/Select'
 import { formatCurrency, formatDate } from '../utils/currency'
+import useDebouncedValue from '../hooks/useDebouncedValue'
 
 const sources = ['Salary', 'Freelance', 'Business', 'Allowance', 'Investment', 'Gift', 'Other']
 const defaultForm = {
@@ -30,6 +32,8 @@ const IncomePage = () => {
   const [form, setForm] = useState(defaultForm)
   const [formError, setFormError] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [pendingDelete, setPendingDelete] = useState(null)
+  const debouncedSearch = useDebouncedValue(search)
 
   const loadIncome = async () => {
     setLoading(true)
@@ -49,7 +53,7 @@ const IncomePage = () => {
     const run = async () => {
       setLoading(true)
       try {
-        const response = await fetchIncome({ search, sort })
+        const response = await fetchIncome({ search: debouncedSearch, sort })
         if (active) {
           setItems(response || [])
         }
@@ -68,7 +72,7 @@ const IncomePage = () => {
     return () => {
       active = false
     }
-  }, [search, sort])
+  }, [debouncedSearch, sort])
 
   const openCreateModal = () => {
     setEditingId(null)
@@ -135,10 +139,11 @@ const IncomePage = () => {
     }
   }
 
-  const handleDelete = async (id) => {
+  const handleDelete = async () => {
     try {
-      await deleteIncome(id)
+      await deleteIncome(pendingDelete._id)
       toast.success('Income deleted successfully')
+      setPendingDelete(null)
       loadIncome()
     } catch (error) {
       toast.error(error.message)
@@ -196,7 +201,7 @@ const IncomePage = () => {
                         <button type="button" className="icon-button small" onClick={() => openEditModal(item)} aria-label="Edit income">
                           <Pencil size={16} />
                         </button>
-                        <button type="button" className="icon-button small danger" onClick={() => handleDelete(item._id)} aria-label="Delete income">
+                        <button type="button" className="icon-button small danger" onClick={() => setPendingDelete(item)} aria-label="Delete income">
                           <Trash2 size={16} />
                         </button>
                       </div>
@@ -225,6 +230,7 @@ const IncomePage = () => {
           </div>
         </form>
       </Modal>
+      <ConfirmDialog open={Boolean(pendingDelete)} title="Delete income?" message={`Delete ${pendingDelete?.title || 'this income'}? This action cannot be undone.`} onCancel={() => setPendingDelete(null)} onConfirm={handleDelete} />
     </div>
   )
 }
